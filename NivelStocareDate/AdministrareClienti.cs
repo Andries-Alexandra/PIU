@@ -10,23 +10,18 @@ namespace NivelStocareDate
 {
     public class AdministrareClienti
     {
-        private const int nr_max_clienti = 100;
-
-        private Client[] clienti;
+        private List<Client> clienti;
         private int nrClienti;
         public AdministrareClienti()
         {
-            clienti = new Client[nr_max_clienti];
-            nrClienti = 0;
+            clienti = new List<Client>();
         }
         public void AddClienti(Client client)
         {
-            clienti[nrClienti] = client;
-            nrClienti++;
+            clienti.Add(client);
         }
-        public Client[] GetClient(out int nrClienti)
+        public List<Client> GetClient()
         {
-            nrClienti = this.nrClienti;
             return clienti;
         }
     }

@@ -1,16 +1,11 @@
 ﻿using System;
-using LibrarieModele;
-using NivelStocareDate;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
 using System.Configuration;
 using System.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using LibrarieModele;
+using NivelStocareDate;
 
 namespace InterfataUtilizator_WindowsForms
 {
@@ -18,94 +13,122 @@ namespace InterfataUtilizator_WindowsForms
     {
         AdministrareClientFisierText adminClient;
 
-        private Label lblNume;
-        private Label lblEmail;
-        private Label lblNrTel;
+        private Label lblNumeHeader, lblEmailHeader, lblNrTelHeader;
+        private Label lblNumeInput, lblEmailInput, lblNrTelInput, lblError;
+        private TextBox txtNume, txtEmail, txtNrTel;
+        private Button btnAdauga;
 
-        private Label[] lblsNume;
-        private Label[] lblsEmail;
-        private Label[] lblsNrTel;
+        private Label[,] lblsClienti;
 
-        private const int LATIME_CONTROL = 100;
+        private const int LATIME_CONTROL = 150;
+        private const int LATIME_TEXTBOX = 200;
         private const int DIMENSIUNE_PAS_Y = 30;
-        private const int DIMENSIUNE_PAS_X = 120;
+        private const int DIMENSIUNE_PAS_X = 160;
+        private const int LIMITA_NUME = 15;
+        private const int OFFSET_ETICHETA = 10; 
+        private const int OFFSET_TEXTBOX = 120; 
 
         public Form2()
         {
             InitializeComponent();
             string numeFisierClient = ConfigurationManager.AppSettings["NumeFisierClient"];
-            string locatieFisierSolutie = Directory.GetParent(System.IO.Directory.GetCurrentDirectory()).Parent.Parent.FullName;
-            string caleCompletaFisierClient = locatieFisierSolutie + "\\" + numeFisierClient;
+            string locatieFisierSolutieClient = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
+            string caleCompletaFisierClient = Path.Combine(locatieFisierSolutieClient, numeFisierClient);
             adminClient = new AdministrareClientFisierText(caleCompletaFisierClient);
-            int nrClienti = 0;
-            Client[] clienti = adminClient.GetClient(out nrClienti);
 
-            this.Size = new Size(500, 200);
+            this.Size = new Size(800, 400); 
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(100, 100);
             this.Font = new Font("Arial", 9, FontStyle.Bold);
-            this.ForeColor = Color.DarkMagenta;
+            this.ForeColor = Color.DeepPink;
             this.Text = "Informatii clienti";
 
-            //label pt 'Nume'
-            lblNume = new Label();
-            lblNume.Width = LATIME_CONTROL;
-            lblNume.Text = "Nume";
-            lblNume.Left = DIMENSIUNE_PAS_X;
-            lblNume.ForeColor = Color.DarkMagenta;
-            this.Controls.Add(lblNume);
+            lblNumeHeader = new Label { Width = LATIME_CONTROL, Text = "Nume", Left = DIMENSIUNE_PAS_X, ForeColor = Color.DarkMagenta };
+            lblEmailHeader = new Label { Width = LATIME_CONTROL, Text = "Email", Left = 2 * DIMENSIUNE_PAS_X, ForeColor = Color.DarkMagenta };
+            lblNrTelHeader = new Label { Width = LATIME_CONTROL, Text = "NrTel", Left = 3 * DIMENSIUNE_PAS_X, ForeColor = Color.DarkMagenta };
+            this.Controls.AddRange(new[] { lblNumeHeader, lblEmailHeader, lblNrTelHeader });
 
-            //label pt 'Email'
-            lblEmail = new Label();
-            lblEmail.Width = LATIME_CONTROL;
-            lblEmail.Text = "Email";
-            lblEmail.Left = 2 * DIMENSIUNE_PAS_X;
-            lblEmail.ForeColor = Color.DarkMagenta;
-            this.Controls.Add(lblEmail);
+            int startY = 150;
+            lblNumeInput = new Label { Text = "Nume:", Left = OFFSET_ETICHETA, Top = startY, ForeColor = Color.DarkMagenta };
+            txtNume = new TextBox { Left = OFFSET_TEXTBOX, Top = startY, Width = LATIME_TEXTBOX };
+            lblEmailInput = new Label { Text = "Email:", Left = OFFSET_ETICHETA, Top = startY + DIMENSIUNE_PAS_Y, ForeColor = Color.DarkMagenta };
+            txtEmail = new TextBox { Left = OFFSET_TEXTBOX, Top = startY + DIMENSIUNE_PAS_Y, Width = LATIME_TEXTBOX };
+            lblNrTelInput = new Label { Text = "NrTel:", Left = OFFSET_ETICHETA, Top = startY + 2 * DIMENSIUNE_PAS_Y, ForeColor = Color.DarkMagenta };
+            txtNrTel = new TextBox { Left = OFFSET_TEXTBOX, Top = startY + 2 * DIMENSIUNE_PAS_Y, Width = LATIME_TEXTBOX };
+            lblError = new Label { Left = OFFSET_TEXTBOX + LATIME_TEXTBOX + 20, Top = startY, Width = 300, ForeColor = Color.Red, Visible = false };
 
-            //label pt 'NrTel'
-            lblNrTel = new Label();
-            lblNrTel.Width = LATIME_CONTROL;
-            lblNrTel.Text = "NrTel";
-            lblNrTel.Left = 3 * DIMENSIUNE_PAS_X;
-            lblNrTel.ForeColor = Color.DarkMagenta;
-            this.Controls.Add(lblNrTel);
+            btnAdauga = new Button { Text = "Adaugă", Left = OFFSET_TEXTBOX, Top = startY + 3 * DIMENSIUNE_PAS_Y, Width = 100 };
+            btnAdauga.Click += BtnAdauga_Click;
+
+            this.Controls.AddRange(new Control[] { lblNumeInput, txtNume, lblEmailInput, txtEmail, lblNrTelInput, txtNrTel, btnAdauga, lblError });
         }
+
         private void Form2_Load(object sender, EventArgs e)
         {
             AfiseazaClienti();
         }
+
         private void AfiseazaClienti()
         {
-            int nrClienti = 0;
-            Client[] clienti = adminClient.GetClient(out nrClienti);
-            lblsNume = new Label[nrClienti];
-            lblsEmail = new Label[nrClienti];
-            lblsNrTel = new Label[nrClienti];
-            for (int i = 0; i < nrClienti; i++)
+            if (lblsClienti != null)
+                foreach (var lbl in lblsClienti) this.Controls.Remove(lbl);
+
+            List<Client> clienti = adminClient.GetClient();
+            lblsClienti = new Label[clienti.Count, 3];
+
+            for (int i = 0; i < clienti.Count; i++)
             {
-                lblsNume[i] = new Label();
-                lblsNume[i].Width = LATIME_CONTROL;
-                lblsNume[i].Text = clienti[i].nume;
-                lblsNume[i].Left = DIMENSIUNE_PAS_X;
-                lblsNume[i].Top = (i + 1) * DIMENSIUNE_PAS_Y;
-                lblsNume[i].ForeColor = Color.DarkMagenta;
-                this.Controls.Add(lblsNume[i]);
-                lblsEmail[i] = new Label();
-                lblsEmail[i].Width = LATIME_CONTROL;
-                lblsEmail[i].Text = clienti[i].email;
-                lblsEmail[i].Left = 2 * DIMENSIUNE_PAS_X;
-                lblsEmail[i].Top = (i + 1) * DIMENSIUNE_PAS_Y;
-                lblsEmail[i].ForeColor = Color.DarkMagenta;
-                this.Controls.Add(lblsEmail[i]);
-                lblsNrTel[i] = new Label();
-                lblsNrTel[i].Width = LATIME_CONTROL;
-                lblsNrTel[i].Text = clienti[i].nrTel;
-                lblsNrTel[i].Left = 3 * DIMENSIUNE_PAS_X;
-                lblsNrTel[i].Top = (i + 1) * DIMENSIUNE_PAS_Y;
-                lblsNrTel[i].ForeColor = Color.DarkMagenta;
-                this.Controls.Add(lblsNrTel[i]);
-                i++;
+                lblsClienti[i, 0] = new Label { Width = LATIME_CONTROL, Text = clienti[i].nume, Left = DIMENSIUNE_PAS_X, Top = (i + 1) * DIMENSIUNE_PAS_Y };
+                lblsClienti[i, 1] = new Label { Width = LATIME_CONTROL, Text = clienti[i].email, Left = 2 * DIMENSIUNE_PAS_X, Top = (i + 1) * DIMENSIUNE_PAS_Y };
+                lblsClienti[i, 2] = new Label { Width = LATIME_CONTROL, Text = clienti[i].nrTel, Left = 3 * DIMENSIUNE_PAS_X, Top = (i + 1) * DIMENSIUNE_PAS_Y };
+                this.Controls.AddRange(new[] { lblsClienti[i, 0], lblsClienti[i, 1], lblsClienti[i, 2] });
+            }
+        }
+
+        private void BtnAdauga_Click(object sender, EventArgs e)
+        {
+            lblNumeInput.ForeColor = lblEmailInput.ForeColor = lblNrTelInput.ForeColor = Color.DarkMagenta;
+            lblError.Visible = false;
+
+            int codEroare = ValideazaDateClient();
+            if (codEroare != 0)
+            {
+                AfiseazaEroare(codEroare);
+                return;
+            }
+
+            Client clientNou = new Client(txtNume.Text, txtEmail.Text, txtNrTel.Text);
+            adminClient.AddClienti(clientNou);
+
+            txtNume.Clear(); txtEmail.Clear(); txtNrTel.Clear();
+            AfiseazaClienti();
+        }
+
+        private int ValideazaDateClient()
+        {
+            if (string.IsNullOrEmpty(txtNume.Text) || txtNume.Text.Length > LIMITA_NUME) return 1;
+            if (string.IsNullOrEmpty(txtEmail.Text) || !txtEmail.Text.Contains("@")) return 2;
+            if (string.IsNullOrEmpty(txtNrTel.Text) || !long.TryParse(txtNrTel.Text, out _)) return 3;
+            return 0;
+        }
+
+        private void AfiseazaEroare(int codEroare)
+        {
+            lblError.Visible = true;
+            switch (codEroare)
+            {
+                case 1:
+                    lblNumeInput.ForeColor = Color.Red;
+                    lblError.Text = $"Numele nu poate depăși {LIMITA_NUME} caractere!";
+                    break;
+                case 2:
+                    lblEmailInput.ForeColor = Color.Red;
+                    lblError.Text = "Email-ul trebuie să conțină '@'!";
+                    break;
+                case 3:
+                    lblNrTelInput.ForeColor = Color.Red;
+                    lblError.Text = "Numărul de telefon trebuie să fie numeric!";
+                    break;
             }
         }
     }

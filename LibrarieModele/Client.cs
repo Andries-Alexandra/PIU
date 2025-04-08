@@ -34,7 +34,7 @@ namespace LibrarieModele
         }
         public Client(string linieFisier)
         {
-            var dateFisier = linieFisier.Split(SEPARATOR_PRINCIPAL_FISIER);
+            string[] dateFisier = linieFisier.Split(SEPARATOR_PRINCIPAL_FISIER);
 
             this.nume = dateFisier[NUME];
             this.email = dateFisier[EMAIL];

@@ -11,6 +11,8 @@ namespace NivelStocareDate
     public class AdministrareClientFisierText
     {
         private const int nr_max_clienti = 100;
+        private const int ID_PRIMUL_CLIENT = 1;
+        private const int INCREMENT = 1;
         private string numeFisierClient;
 
         public AdministrareClientFisierText(string numeFisierClient)
@@ -27,18 +29,17 @@ namespace NivelStocareDate
                 streamWriterFisierText.WriteLine(client.ConversieLaSir_PentruFisier());
             }
         }
-        public Client[] GetClient(out int nrClienti)
+        public List<Client> GetClient()
         {
-            Client[] clienti = new Client[nr_max_clienti];
+            List<Client> clienti = new List<Client>();
 
             using(StreamReader streamReader = new StreamReader(numeFisierClient))
             {
                 string linieFisier;
-                nrClienti = 0;
 
                 while((linieFisier=streamReader.ReadLine())!=null)
                 {
-                    clienti[nrClienti++] = new Client(linieFisier);
+                    clienti.Add(new Client(linieFisier));
                 }
             }
             return clienti;

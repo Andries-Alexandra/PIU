@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using LibrarieModele.Enumerari;
 using System.Globalization;
 
@@ -13,12 +12,11 @@ namespace LibrarieModele
         private const int NUME = 1;
         private const int PRET = 2;
         private const int CATEGORIE = 3;
-        
+
         public int id { get; set; }
         public string nume { get; set; }
         public double pret { get; set; }
         public CategorieProdus categorie { get; set; }
-
 
         public Produs()
         {
@@ -33,31 +31,25 @@ namespace LibrarieModele
             this.nume = nume;
             this.pret = pret;
         }
+
         public Produs(string linieFisier)
         {
-            var dateFisier = linieFisier.Split(SEPARATOR_PRINCIPAL_FISIER);
+            string[] dateFisier = linieFisier.Split(SEPARATOR_PRINCIPAL_FISIER);
 
             this.id = Convert.ToInt32(dateFisier[ID]);
             this.nume = dateFisier[NUME];
-            this.pret = Convert.ToInt32(dateFisier[PRET]);
+            this.pret = Convert.ToDouble(dateFisier[PRET], CultureInfo.InvariantCulture);
             this.categorie = (CategorieProdus)Enum.Parse(typeof(CategorieProdus), dateFisier[CATEGORIE]);
         }
+
         public string Info()
         {
             return $"ID produs: {id}, denumire produs: {nume}, pret: {pret:F2} LEI, Categorie: {categorie}";
         }
+
         public string ConversieLaSir_PentruFisier()
         {
-            string obiectProdusPentruFisier = string.Format("{1}{0}{2}{0}{3}{0}{4}",
-                SEPARATOR_PRINCIPAL_FISIER,
-                id.ToString(),
-                (nume ?? "necunoscut"),
-                pret.ToString(),
-                categorie);
-            return obiectProdusPentruFisier;
+            return string.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3}", id, nume, pret, categorie);
         }
     }
 }
-
-     
-    

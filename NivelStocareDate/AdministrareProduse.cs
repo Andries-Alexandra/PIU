@@ -1,27 +1,23 @@
 ﻿using LibrarieModele;
+using System.Collections.Generic;
 
 namespace NivelStocareDate
 {
     public class AdministrareProduse
     {
-        private const int nr_max_produse = 100;
-        
-        private Produs[] produse;
+        private List<Produs> produse;
         private int nrProd;
         
         public AdministrareProduse()
         {
-            produse = new Produs[nr_max_produse];
-            nrProd = 0;
+            produse = new List<Produs>();
         }
         public void AddProduse(Produs produs)
         {
-            produse[nrProd] = produs;
-            nrProd++;
+            produse.Add(produs);
         }
-        public Produs[] GetProdus(out int nrProd)
+        public List<Produs> GetProdus()
         {
-            nrProd = this.nrProd;
             return produse;
         }
         public Produs CautaProdusDupaNume(string nume)
