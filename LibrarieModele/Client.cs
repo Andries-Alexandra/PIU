@@ -1,60 +1,64 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LibrarieModele
 {
     public class Client
     {
-        private const char SEPARATOR_PRINCIPAL_FISIER = ',';
-
-        private const int NUME = 0;
-        private const int EMAIL = 1;
-        private const int NRTEL = 2;
-        private const int TIP = 3;
-
+        public string nrTel { get; set; }
         public string nume { get; set; }
         public string email { get; set; }
-        public string nrTel { get; set; }
         public TipClient tip { get; set; }
-    
-        public Client()
+        public bool abonatNewsletter { get; set; }
+        public bool clientFidel { get; set; }
+
+        public Client(string nrTel, string nume, string email, bool abonatNewsletter, bool clientFidel)
         {
-            nume = string.Empty;
-            email = string.Empty;
-            nrTel = string.Empty;
-        }
-        public Client(string nume, string email, string nrTel)
-        {
+            this.nrTel = nrTel;
             this.nume = nume;
             this.email = email;
-            this.nrTel = nrTel;
+            this.abonatNewsletter = abonatNewsletter;
+            this.clientFidel = clientFidel;
         }
+
+        // Constructor pentru citirea din fișier
         public Client(string linieFisier)
         {
-            string[] dateFisier = linieFisier.Split(SEPARATOR_PRINCIPAL_FISIER);
+            string[] dateFisier = linieFisier.Split(',');
+            this.nrTel = dateFisier[0];
+            this.nume = dateFisier[1];
+            this.email = dateFisier[2];
+            this.tip = (TipClient)Enum.Parse(typeof(TipClient), dateFisier[3]);
 
-            this.nume = dateFisier[NUME];
-            this.email = dateFisier[EMAIL];
-            this.nrTel = dateFisier[NRTEL];
-            this.tip = (TipClient)Enum.Parse(typeof(TipClient), dateFisier[TIP]);
+            // Verificăm lungimea array-ului pentru a gestiona formatul vechi
+            if (dateFisier.Length > 4)
+            {
+                // Format vechi (cu tipComanda) sau format nou (cu abonatNewsletter și clientFidel)
+                if (dateFisier.Length == 5)
+                {
+                    // Format vechi: nrTel,nume,email,tip,tipComanda
+                    // Setăm valori implicite
+                    this.abonatNewsletter = true; // Implicit, clientul este abonat
+                    this.clientFidel = false;     // Implicit, nu este client fidel
+                }
+                else if (dateFisier.Length >= 6)
+                {
+                    // Format nou: nrTel,nume,email,tip,abonatNewsletter,clientFidel
+                    this.abonatNewsletter = bool.Parse(dateFisier[4]);
+                    this.clientFidel = bool.Parse(dateFisier[5]);
+                }
+            }
+            else
+            {
+                // Dacă linia este incompletă, setăm valori implicite
+                this.abonatNewsletter = true;
+                this.clientFidel = false;
+            }
+        }
 
-        }
-        public string Info()
-        {
-            return $"Nume client: {nume}, email: {email}, numar de telefon: {nrTel}, tip: {tip}";
-        }
+        // Conversie pentru salvarea în fișier
         public string ConversieLaSir_PentruFisier()
         {
-            string obiectClientPentruFisier = string.Format("{1}{0}{2}{0}{3}{0}{4}",
-                SEPARATOR_PRINCIPAL_FISIER,
-                (nume ?? "necunoscut"),
-                (email ?? "necunoscut"),
-                (nrTel ?? "necunoscut"),
-                tip);
-            return obiectClientPentruFisier;
+            return $"{nrTel},{nume},{email},{tip},{abonatNewsletter},{clientFidel}";
         }
     }
 }

@@ -6,6 +6,8 @@ using System.Configuration;
 using System.IO;
 using LibrarieModele;
 using NivelStocareDate;
+using LibrarieModele.Enumerari;
+using System.Linq;
 
 namespace InterfataUtilizator_WindowsForms
 {
@@ -13,149 +15,143 @@ namespace InterfataUtilizator_WindowsForms
     {
         AdministrareClientFisierText adminClient;
 
-        private DataGridView dgvClienti;
-        private GroupBox grpIntroducere, grpCautare;
-        private Label lblNumeInput, lblEmailInput, lblNrTelInput, lblError, lblCautare;
-        private TextBox txtNume, txtEmail, txtNrTel, txtCautare;
-        private Button btnAdauga, btnClear, btnRefresh, btnCautare;
-
-        private const int LATIME_TEXTBOX = 200;
-        private const int DIMENSIUNE_PAS_Y = 40;
-        private const int LIMITA_NUME = 15;
-        private const int OFFSET_ETICHETA = 20;
-        private const int OFFSET_TEXTBOX = 120;
-
         public Form2()
         {
             InitializeComponent();
-            string numeFisierClient = ConfigurationManager.AppSettings["NumeFisierClient"];
-            string locatieFisierSolutieClient = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
-            string caleCompletaFisierClient = Path.Combine(locatieFisierSolutieClient, numeFisierClient);
-            adminClient = new AdministrareClientFisierText(caleCompletaFisierClient);
-
-            this.Size = new Size(800, 600);
-            this.StartPosition = FormStartPosition.Manual;
-            this.Location = new Point(100, 100);
-            this.Font = new Font("Segoe UI", 11, FontStyle.Regular);
-            this.Text = "Gestionare Clienți";
-            this.BackColor = Color.LightPink;
-
-            dgvClienti = new DataGridView
-            {
-                Location = new Point(20, 80),
-                Size = new Size(740, 200),
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = Color.LavenderBlush,
-                BorderStyle = BorderStyle.FixedSingle,
-                AllowUserToAddRows = false,
-                ReadOnly = true
-            };
-            dgvClienti.Columns.Add("Nume", "Nume");
-            dgvClienti.Columns.Add("Email", "Email");
-            dgvClienti.Columns.Add("NrTel", "Nr. Telefon");
-            this.Controls.Add(dgvClienti);
-
-            grpCautare = new GroupBox
-            {
-                Text = "Căutare Clienți",
-                Location = new Point(20, 20),
-                Size = new Size(740, 50),
-                ForeColor = Color.DarkOrchid
-            };
-            lblCautare = new Label { Text = "Caută:", Left = OFFSET_ETICHETA, Top = 20, ForeColor = Color.DarkOrchid };
-            txtCautare = new TextBox { Left = OFFSET_TEXTBOX, Top = 20, Width = LATIME_TEXTBOX };
-            btnCautare = new Button { Text = "Caută", Left = OFFSET_TEXTBOX + LATIME_TEXTBOX + 20, Top = 20, Width = 100, BackColor = Color.Orchid };
-            btnCautare.Click += BtnCautare_Click;
-            grpCautare.Controls.AddRange(new Control[] { lblCautare, txtCautare, btnCautare });
-            this.Controls.Add(grpCautare);
-
-            grpIntroducere = new GroupBox
-            {
-                Text = "Introducere Client Nou",
-                Location = new Point(20, 290),
-                Size = new Size(740, 250),
-                ForeColor = Color.DarkOrchid
-            };
-            this.Controls.Add(grpIntroducere);
-
-            int startY = 30;
-            lblNumeInput = new Label { Text = "Nume:", Left = OFFSET_ETICHETA, Top = startY, ForeColor = Color.DarkOrchid };
-            txtNume = new TextBox { Left = OFFSET_TEXTBOX, Top = startY, Width = LATIME_TEXTBOX };
-            lblEmailInput = new Label { Text = "Email:", Left = OFFSET_ETICHETA, Top = startY + DIMENSIUNE_PAS_Y, ForeColor = Color.DarkOrchid };
-            txtEmail = new TextBox { Left = OFFSET_TEXTBOX, Top = startY + DIMENSIUNE_PAS_Y, Width = LATIME_TEXTBOX };
-            lblNrTelInput = new Label { Text = "Nr. Telefon:", Left = OFFSET_ETICHETA, Top = startY + 2 * DIMENSIUNE_PAS_Y, ForeColor = Color.DarkOrchid };
-            txtNrTel = new TextBox { Left = OFFSET_TEXTBOX, Top = startY + 2 * DIMENSIUNE_PAS_Y, Width = LATIME_TEXTBOX };
-            lblError = new Label { Left = OFFSET_TEXTBOX + LATIME_TEXTBOX + 20, Top = startY, Width = 300, ForeColor = Color.Red, Visible = false };
-
-            btnAdauga = new Button { Text = "Adaugă", Left = OFFSET_TEXTBOX, Top = startY + 3 * DIMENSIUNE_PAS_Y, Width = 100, BackColor = Color.HotPink };
-            btnAdauga.Click += BtnAdauga_Click;
-            btnClear = new Button { Text = "Șterge Câmpuri", Left = OFFSET_TEXTBOX + 120, Top = startY + 3 * DIMENSIUNE_PAS_Y, Width = 120, BackColor = Color.Plum };
-            btnClear.Click += BtnClear_Click;
-            btnRefresh = new Button { Text = "Reîmprospătează", Left = OFFSET_TEXTBOX + 260, Top = startY + 3 * DIMENSIUNE_PAS_Y, Width = 120, BackColor = Color.MediumPurple };
-            btnRefresh.Click += BtnRefresh_Click;
-
-            grpIntroducere.Controls.AddRange(new Control[] { lblNumeInput, txtNume, lblEmailInput, txtEmail, lblNrTelInput, txtNrTel, btnAdauga, btnClear, btnRefresh, lblError });
+      
+            string numeFisier = ConfigurationManager.AppSettings["NumeFisierClienti"];
+            string locatieFisier = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
+            string caleCompletaFisier = Path.Combine(locatieFisier, numeFisier);
+            adminClient = new AdministrareClientFisierText(caleCompletaFisier);
         }
 
         private void Form2_Load(object sender, EventArgs e)
         {
+
             AfiseazaClienti();
+            dgvClienti.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvClienti.SelectionChanged += DgvClienti_SelectionChanged;
         }
 
         private void AfiseazaClienti(List<Client> clienti = null)
         {
-            if (clienti == null) clienti = adminClient.GetClient();
+            if (clienti == null) clienti = adminClient.GetClienti();
             dgvClienti.Rows.Clear();
             foreach (Client client in clienti)
             {
-                dgvClienti.Rows.Add(client.nume, client.email, client.nrTel);
+                string newsletterText = client.abonatNewsletter ? "Da" : "Nu";
+                string fidelText = client.clientFidel ? "Da" : "Nu";
+                
+                dgvClienti.Rows.Add(client.email, client.nrTel, client.nume, client.tip.ToString(), newsletterText, fidelText);
             }
         }
 
         private void BtnCautare_Click(object sender, EventArgs e)
         {
-            string termenCautare = txtCautare.Text.Trim().ToLower();
-            if (string.IsNullOrEmpty(termenCautare))
+            string termen = txtCautare.Text.ToLower();
+            if (string.IsNullOrEmpty(termen))
             {
                 AfiseazaClienti();
                 return;
             }
 
-            List<Client> clienti = adminClient.GetClient();
-            List<Client> rezultate = clienti.FindAll(c =>
-                c.nume.ToLower().Contains(termenCautare) ||
-                c.email.ToLower().Contains(termenCautare) ||
-                c.nrTel.ToLower().Contains(termenCautare));
+            List<Client> clienti = adminClient.GetClienti();
+            List<Client> rezultate = new List<Client>();
+            foreach (Client c in clienti)
+            {
+                string newsletterText = c.abonatNewsletter ? "da" : "nu";
+                string fidelText = c.clientFidel ? "da" : "nu";
+                if (c.nume.ToLower().Contains(termen) ||
+                    c.email.ToLower().Contains(termen) ||
+                    c.nrTel.ToLower().Contains(termen) ||
+                    c.tip.ToString().ToLower().Contains(termen) ||
+                    newsletterText.Contains(termen) ||
+                    fidelText.Contains(termen))
+                {
+                    rezultate.Add(c);
+                }
+            }
 
             AfiseazaClienti(rezultate);
         }
 
         private void BtnAdauga_Click(object sender, EventArgs e)
         {
-            lblNumeInput.ForeColor = lblEmailInput.ForeColor = lblNrTelInput.ForeColor = Color.DarkOrchid;
             lblError.Visible = false;
 
-            string mesajEroare = ValideazaDateClient();
-            if (!string.IsNullOrEmpty(mesajEroare))
+            if (string.IsNullOrEmpty(txtNrTel.Text) || string.IsNullOrEmpty(txtNume.Text) || string.IsNullOrEmpty(txtEmail.Text))
             {
-                AfiseazaEroare(mesajEroare);
+                lblError.Text = "Toate câmpurile trebuie completate!";
+                lblError.Visible = true;
                 return;
             }
 
-            Client clientNou = new Client(txtNume.Text, txtEmail.Text, txtNrTel.Text);
-            adminClient.AddClienti(clientNou);
+            string nrTel = txtNrTel.Text;
+            string nume = txtNume.Text;
+            string email = txtEmail.Text;
+            TipClient tip = GetTipClientSelectat();
+            bool abonatNewsletter = ckbNewsletter.Checked;
+            bool clientFidel = ckbClientFidel.Checked;
 
-            txtNume.Clear(); txtEmail.Clear(); txtNrTel.Clear();
+            Client clientNou = new Client(nrTel, nume, email, abonatNewsletter, clientFidel)
+            {
+                tip = tip
+            };
+            adminClient.AddClient(clientNou);
+
+            ResetareControale();
+            AfiseazaClienti();
+        }
+
+        // Editează un client existent
+        private void BtnEditare_Click(object sender, EventArgs e)
+        {
+            lblError.Visible = false;
+
+            if (string.IsNullOrEmpty(txtNrTel.Text) || string.IsNullOrEmpty(txtNume.Text) || string.IsNullOrEmpty(txtEmail.Text))
+            {
+                lblError.Text = "Toate câmpurile trebuie completate!";
+                lblError.Visible = true;
+                return;
+            }
+
+            if (dgvClienti.SelectedRows.Count == 0)
+            {
+                lblError.Text = "Selectați un client pentru editare!";
+                lblError.Visible = true;
+                return;
+            }
+
+            string nrTelVechi = dgvClienti.SelectedRows[0].Cells["NrTel"].Value.ToString();
+            string nrTelNou = txtNrTel.Text;
+            string nume = txtNume.Text;
+            string email = txtEmail.Text;
+            TipClient tip = GetTipClientSelectat();
+            bool abonatNewsletter = ckbNewsletter.Checked;
+            bool clientFidel = ckbClientFidel.Checked;
+
+            var clienti = adminClient.GetClienti();
+            var client = clienti.Find(c => c.nrTel == nrTelVechi);
+            if (client != null)
+            {
+                client.nrTel = nrTelNou;
+                client.nume = nume;
+                client.email = email;
+                client.tip = tip;
+                client.abonatNewsletter = abonatNewsletter;
+                client.clientFidel = clientFidel;
+
+                string caleFisier = adminClient.GetType().GetField("numeFisier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(adminClient).ToString();
+                File.WriteAllLines(caleFisier, clienti.Select(c => c.ConversieLaSir_PentruFisier()));
+            }
+
+            ResetareControale();
             AfiseazaClienti();
         }
 
         private void BtnClear_Click(object sender, EventArgs e)
         {
-            txtNume.Clear();
-            txtEmail.Clear();
-            txtNrTel.Clear();
-            lblNumeInput.ForeColor = lblEmailInput.ForeColor = lblNrTelInput.ForeColor = Color.DarkOrchid;
-            lblError.Visible = false;
+            ResetareControale();
         }
 
         private void BtnRefresh_Click(object sender, EventArgs e)
@@ -163,30 +159,45 @@ namespace InterfataUtilizator_WindowsForms
             AfiseazaClienti();
         }
 
-        private string ValideazaDateClient()
+        private void DgvClienti_SelectionChanged(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(txtNume.Text) || txtNume.Text.Length > LIMITA_NUME)
-            {
-                lblNumeInput.ForeColor = Color.Red;
-                return $"Numele nu poate depăși {LIMITA_NUME} caractere!";
-            }
-            if (string.IsNullOrEmpty(txtEmail.Text) || !txtEmail.Text.Contains("@"))
-            {
-                lblEmailInput.ForeColor = Color.Red;
-                return "Email-ul trebuie să conțină '@'!";
-            }
-            if (string.IsNullOrEmpty(txtNrTel.Text) || !long.TryParse(txtNrTel.Text, out _))
-            {
-                lblNrTelInput.ForeColor = Color.Red;
-                return "Numărul de telefon trebuie să fie numeric!";
-            }
-            return "";
+            if (dgvClienti.SelectedRows.Count == 0) return;
+
+            var randSelectat = dgvClienti.SelectedRows[0];
+            txtNume.Text = randSelectat.Cells["Nume"].Value?.ToString() ?? "";
+            txtEmail.Text = randSelectat.Cells["Email"].Value?.ToString() ?? "";
+            txtNrTel.Text = randSelectat.Cells["NrTel"].Value?.ToString() ?? "";
+
+            string tipText = randSelectat.Cells["Tip"].Value?.ToString() ?? "Standard";
+            if (tipText == "Premium") rdbPremium.Checked = true;
+            else if (tipText == "VIP") rdbVIP.Checked = true;
+            else rdbStandard.Checked = true;
+
+            string newsletterText = randSelectat.Cells["Newsletter"].Value?.ToString() ?? "Nu";
+            ckbNewsletter.Checked = newsletterText == "Da";
+            string fidelText = randSelectat.Cells["Fidel"].Value?.ToString() ?? "Nu";
+            ckbClientFidel.Checked = fidelText == "Da";
         }
 
-        private void AfiseazaEroare(string mesajEroare)
+        private TipClient GetTipClientSelectat()
         {
-            lblError.Text = mesajEroare;
-            lblError.Visible = true;
+            if (rdbStandard.Checked) return TipClient.Standard;
+            if (rdbPremium.Checked) return TipClient.Premium;
+            if (rdbVIP.Checked) return TipClient.VIP;
+            return TipClient.Standard; 
+        }
+
+        private void ResetareControale()
+        {
+            txtNrTel.Clear();
+            txtNume.Clear();
+            txtEmail.Clear();
+            rdbStandard.Checked = true;
+            rdbPremium.Checked = false;
+            rdbVIP.Checked = false;
+            ckbNewsletter.Checked = true;
+            ckbClientFidel.Checked = false;
+            lblError.Visible = false;
         }
     }
 }

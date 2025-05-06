@@ -1,48 +1,82 @@
-﻿using LibrarieModele;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LibrarieModele;
 
 namespace NivelStocareDate
 {
     public class AdministrareClientFisierText
     {
-        private const int nr_max_clienti = 100;
-        private const int ID_PRIMUL_CLIENT = 1;
-        private const int INCREMENT = 1;
-        private string numeFisierClient;
+        private string numeFisier;
 
-        public AdministrareClientFisierText(string numeFisierClient)
+        public AdministrareClientFisierText(string numeFisier)
         {
-            this.numeFisierClient = numeFisierClient;
-
-            Stream streamFisierText = File.Open(numeFisierClient, FileMode.OpenOrCreate);
-            streamFisierText.Close();
+            this.numeFisier = numeFisier;
+            using (StreamWriter sw = new StreamWriter(numeFisier, true)) { }
         }
-        public void AddClienti(Client client)
+
+        public void AddClient(Client client)
         {
-            using (StreamWriter streamWriterFisierText=new StreamWriter(numeFisierClient, true))
+            using (StreamWriter sw = new StreamWriter(numeFisier, true))
             {
-                streamWriterFisierText.WriteLine(client.ConversieLaSir_PentruFisier());
+                sw.WriteLine(client.ConversieLaSir_PentruFisier());
             }
         }
-        public List<Client> GetClient()
+
+        public List<Client> GetClienti()
         {
             List<Client> clienti = new List<Client>();
+            List<string> liniiNoi = new List<string>();
 
-            using(StreamReader streamReader = new StreamReader(numeFisierClient))
+            // Citim toate liniile din fișier
+            string[] linii = File.ReadAllLines(numeFisier);
+            bool necesitaActualizare = false;
+
+            foreach (string linie in linii)
             {
-                string linieFisier;
+                if (string.IsNullOrWhiteSpace(linie)) continue;
 
-                while((linieFisier=streamReader.ReadLine())!=null)
+                Client client = new Client(linie);
+                clienti.Add(client);
+
+                // Verificăm dacă linia are formatul vechi (5 elemente)
+                string[] dateFisier = linie.Split(',');
+                if (dateFisier.Length == 5)
                 {
-                    clienti.Add(new Client(linieFisier));
+                    // Linia este în format vechi, o convertim
+                    necesitaActualizare = true;
+                }
+                // Adăugăm linia în formatul nou
+                liniiNoi.Add(client.ConversieLaSir_PentruFisier());
+            }
+
+            // Dacă am găsit linii în format vechi, rescriem fișierul
+            if (necesitaActualizare)
+            {
+                File.WriteAllLines(numeFisier, liniiNoi);
+            }
+
+            return clienti;
+        }
+
+        public Client GetClienti(string nrTel)
+        {
+            using (StreamReader sr = new StreamReader(numeFisier))
+            {
+                string linie;
+                while ((linie = sr.ReadLine()) != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(linie))
+                    {
+                        Client client = new Client(linie);
+                        if (client.nrTel == nrTel)
+                        {
+                            return client;
+                        }
+                    }
                 }
             }
-            return clienti;
+            return null;
         }
     }
 }
