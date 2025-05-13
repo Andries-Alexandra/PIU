@@ -113,6 +113,7 @@
             this.btnCautare.TabIndex = 4;
             this.btnCautare.Text = "Caută";
             this.btnCautare.UseVisualStyleBackColor = false;
+            this.btnCautare.Click += new System.EventHandler(this.BtnCautare_Click);
             // 
             // grpIntroducere
             // 
@@ -269,9 +270,9 @@
             this.lblNrTelInput.AutoSize = true;
             this.lblNrTelInput.Location = new System.Drawing.Point(20, 150);
             this.lblNrTelInput.Name = "lblNrTelInput";
-            this.lblNrTelInput.Size = new System.Drawing.Size(107, 25);
+            this.lblNrTelInput.Size = new System.Drawing.Size(62, 25);
             this.lblNrTelInput.TabIndex = 4;
-            this.lblNrTelInput.Text = "Nr. Telefon:";
+            this.lblNrTelInput.Text = "Email:";
             // 
             // txtEmail
             // 
@@ -285,9 +286,9 @@
             this.lblEmailInput.AutoSize = true;
             this.lblEmailInput.Location = new System.Drawing.Point(20, 110);
             this.lblEmailInput.Name = "lblEmailInput";
-            this.lblEmailInput.Size = new System.Drawing.Size(62, 25);
+            this.lblEmailInput.Size = new System.Drawing.Size(67, 25);
             this.lblEmailInput.TabIndex = 2;
-            this.lblEmailInput.Text = "Email:";
+            this.lblEmailInput.Text = "Nume:";
             // 
             // txtNume
             // 
@@ -301,9 +302,9 @@
             this.lblNumeInput.AutoSize = true;
             this.lblNumeInput.Location = new System.Drawing.Point(20, 70);
             this.lblNumeInput.Name = "lblNumeInput";
-            this.lblNumeInput.Size = new System.Drawing.Size(67, 25);
+            this.lblNumeInput.Size = new System.Drawing.Size(105, 25);
             this.lblNumeInput.TabIndex = 0;
-            this.lblNumeInput.Text = "Nume:";
+            this.lblNumeInput.Text = "Nr. telefon:";
             // 
             // Nume
             // 

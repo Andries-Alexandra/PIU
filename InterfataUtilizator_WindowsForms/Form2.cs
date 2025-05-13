@@ -14,20 +14,20 @@ namespace InterfataUtilizator_WindowsForms
     public partial class Form2 : Form
     {
         AdministrareClientFisierText adminClient;
+        private string caleFisier;
 
         public Form2()
         {
             InitializeComponent();
-      
+
             string numeFisier = ConfigurationManager.AppSettings["NumeFisierClienti"];
             string locatieFisier = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
-            string caleCompletaFisier = Path.Combine(locatieFisier, numeFisier);
-            adminClient = new AdministrareClientFisierText(caleCompletaFisier);
+            caleFisier = Path.Combine(locatieFisier, numeFisier);
+            adminClient = new AdministrareClientFisierText(caleFisier);
         }
 
         private void Form2_Load(object sender, EventArgs e)
         {
-
             AfiseazaClienti();
             dgvClienti.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvClienti.SelectionChanged += DgvClienti_SelectionChanged;
@@ -41,8 +41,7 @@ namespace InterfataUtilizator_WindowsForms
             {
                 string newsletterText = client.abonatNewsletter ? "Da" : "Nu";
                 string fidelText = client.clientFidel ? "Da" : "Nu";
-                
-                dgvClienti.Rows.Add(client.email, client.nrTel, client.nume, client.tip.ToString(), newsletterText, fidelText);
+                dgvClienti.Rows.Add(client.nume, client.email, client.nrTel, client.tip.ToString(), newsletterText, fidelText);
             }
         }
 
@@ -55,23 +54,14 @@ namespace InterfataUtilizator_WindowsForms
                 return;
             }
 
-            List<Client> clienti = adminClient.GetClienti();
-            List<Client> rezultate = new List<Client>();
-            foreach (Client c in clienti)
-            {
-                string newsletterText = c.abonatNewsletter ? "da" : "nu";
-                string fidelText = c.clientFidel ? "da" : "nu";
-                if (c.nume.ToLower().Contains(termen) ||
-                    c.email.ToLower().Contains(termen) ||
-                    c.nrTel.ToLower().Contains(termen) ||
-                    c.tip.ToString().ToLower().Contains(termen) ||
-                    newsletterText.Contains(termen) ||
-                    fidelText.Contains(termen))
-                {
-                    rezultate.Add(c);
-                }
-            }
+            var clienti = adminClient.GetClienti();
 
+            var rezultate = clienti.Where(c =>
+                (c.nume != null && c.nume.ToLower().Contains(termen)) ||
+                (c.email != null && c.email.ToLower().Contains(termen)) ||
+                (c.nrTel != null && c.nrTel.ToLower().Contains(termen)) ||
+                c.tip.ToString().ToLower().Contains(termen)
+            ).ToList();
             AfiseazaClienti(rezultate);
         }
 
@@ -79,21 +69,22 @@ namespace InterfataUtilizator_WindowsForms
         {
             lblError.Visible = false;
 
-            if (string.IsNullOrEmpty(txtNrTel.Text) || string.IsNullOrEmpty(txtNume.Text) || string.IsNullOrEmpty(txtEmail.Text))
+            string mesajEroare = ValideazaDateClient();
+            if (!string.IsNullOrEmpty(mesajEroare))
             {
-                lblError.Text = "Toate câmpurile trebuie completate!";
+                lblError.Text = mesajEroare;
                 lblError.Visible = true;
                 return;
             }
 
-            string nrTel = txtNrTel.Text;
             string nume = txtNume.Text;
             string email = txtEmail.Text;
+            string nrTel = txtNrTel.Text;
             TipClient tip = GetTipClientSelectat();
             bool abonatNewsletter = ckbNewsletter.Checked;
             bool clientFidel = ckbClientFidel.Checked;
 
-            Client clientNou = new Client(nrTel, nume, email, abonatNewsletter, clientFidel)
+            Client clientNou = new Client(nume, email, nrTel, abonatNewsletter, clientFidel)
             {
                 tip = tip
             };
@@ -103,17 +94,9 @@ namespace InterfataUtilizator_WindowsForms
             AfiseazaClienti();
         }
 
-        // Editează un client existent
         private void BtnEditare_Click(object sender, EventArgs e)
         {
             lblError.Visible = false;
-
-            if (string.IsNullOrEmpty(txtNrTel.Text) || string.IsNullOrEmpty(txtNume.Text) || string.IsNullOrEmpty(txtEmail.Text))
-            {
-                lblError.Text = "Toate câmpurile trebuie completate!";
-                lblError.Visible = true;
-                return;
-            }
 
             if (dgvClienti.SelectedRows.Count == 0)
             {
@@ -122,10 +105,18 @@ namespace InterfataUtilizator_WindowsForms
                 return;
             }
 
+            string mesajEroare = ValideazaDateClient(true);
+            if (!string.IsNullOrEmpty(mesajEroare))
+            {
+                lblError.Text = mesajEroare;
+                lblError.Visible = true;
+                return;
+            }
+
             string nrTelVechi = dgvClienti.SelectedRows[0].Cells["NrTel"].Value.ToString();
-            string nrTelNou = txtNrTel.Text;
             string nume = txtNume.Text;
             string email = txtEmail.Text;
+            string nrTelNou = txtNrTel.Text;
             TipClient tip = GetTipClientSelectat();
             bool abonatNewsletter = ckbNewsletter.Checked;
             bool clientFidel = ckbClientFidel.Checked;
@@ -134,14 +125,13 @@ namespace InterfataUtilizator_WindowsForms
             var client = clienti.Find(c => c.nrTel == nrTelVechi);
             if (client != null)
             {
-                client.nrTel = nrTelNou;
                 client.nume = nume;
                 client.email = email;
+                client.nrTel = nrTelNou;
                 client.tip = tip;
                 client.abonatNewsletter = abonatNewsletter;
                 client.clientFidel = clientFidel;
 
-                string caleFisier = adminClient.GetType().GetField("numeFisier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(adminClient).ToString();
                 File.WriteAllLines(caleFisier, clienti.Select(c => c.ConversieLaSir_PentruFisier()));
             }
 
@@ -179,12 +169,35 @@ namespace InterfataUtilizator_WindowsForms
             ckbClientFidel.Checked = fidelText == "Da";
         }
 
+        private string ValideazaDateClient(bool esteEditare = false)
+        {
+            if (string.IsNullOrEmpty(txtNrTel.Text) || string.IsNullOrEmpty(txtNume.Text) || string.IsNullOrEmpty(txtEmail.Text))
+            {
+                return "Toate câmpurile trebuie completate!";
+            }
+
+            var clienti = adminClient.GetClienti();
+            string nrTelNou = txtNrTel.Text;
+            string nrTelVechi = esteEditare && dgvClienti.SelectedRows.Count > 0 ? dgvClienti.SelectedRows[0].Cells["NrTel"].Value.ToString() : null;
+            if (!esteEditare && clienti.Any(c => c.nrTel == nrTelNou))
+            {
+                return "Numărul de telefon există deja!";
+            }
+            else if (esteEditare && nrTelNou != nrTelVechi && clienti.Any(c => c.nrTel == nrTelNou))
+            {
+                return "Numărul de telefon modificat există deja!";
+            }
+
+
+            return "";
+        }
+
         private TipClient GetTipClientSelectat()
         {
             if (rdbStandard.Checked) return TipClient.Standard;
             if (rdbPremium.Checked) return TipClient.Premium;
             if (rdbVIP.Checked) return TipClient.VIP;
-            return TipClient.Standard; 
+            return TipClient.Standard;
         }
 
         private void ResetareControale()

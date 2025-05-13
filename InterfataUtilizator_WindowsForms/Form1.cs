@@ -14,7 +14,7 @@ namespace InterfataUtilizator_WindowsForms
     public partial class Form1 : Form
     {
         AdministrareProdusFisierText adminProd;
-
+        private string caleFisier;
         private const int LIMITA_NUME = 15;
 
         public Form1()
@@ -22,8 +22,8 @@ namespace InterfataUtilizator_WindowsForms
             InitializeComponent();
             string numeFisier = ConfigurationManager.AppSettings["NumeFisier"];
             string locatieFisierSolutie = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
-            string caleCompletaFisier = Path.Combine(locatieFisierSolutie, numeFisier);
-            adminProd = new AdministrareProdusFisierText(caleCompletaFisier);
+            caleFisier = Path.Combine(locatieFisierSolutie, numeFisier);
+            adminProd = new AdministrareProdusFisierText(caleFisier);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -100,29 +100,37 @@ namespace InterfataUtilizator_WindowsForms
             lblIdInput.ForeColor = lblNumeInput.ForeColor = lblPretInput.ForeColor = Color.DarkOrchid;
             lblError.Visible = false;
 
-            string mesajEroare = ValideazaDateProdus(true); 
+            if (dgvProduse.SelectedRows.Count == 0)
+            {
+                AfiseazaEroare("Selectați un produs pentru editare!");
+                return;
+            }
+
+            string mesajEroare = ValideazaDateProdus(true);
             if (!string.IsNullOrEmpty(mesajEroare))
             {
                 AfiseazaEroare(mesajEroare);
                 return;
             }
 
-            int id = int.Parse(txtId.Text);
+            int idVechi = int.Parse(dgvProduse.SelectedRows[0].Cells["Id"].Value.ToString());
+            int idNou = int.Parse(txtId.Text);
             string nume = txtNume.Text;
             double pret = double.Parse(txtPret.Text);
             CategorieProdus categorie = GetCategorieSelectata();
             bool disponibil = ckbDisponibil.Checked;
 
             var produse = adminProd.GetProdus();
-            var produs = produse.Find(p => p.id == id);
+            var produs = produse.Find(p => p.id == idVechi);
             if (produs != null)
             {
+                produs.id = idNou;
                 produs.nume = nume;
                 produs.pret = pret;
                 produs.categorie = categorie;
                 produs.disponibil = disponibil;
-                File.WriteAllLines(adminProd.GetType().GetField("numeFisier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(adminProd).ToString(),
-                    produse.Select(p => p.ConversieLaSir_PentruFisier()));
+
+                File.WriteAllLines(caleFisier, produse.Select(p => p.ConversieLaSir_PentruFisier()));
             }
 
             ResetareControale();
@@ -166,16 +174,25 @@ namespace InterfataUtilizator_WindowsForms
 
         private string ValideazaDateProdus(bool esteEditare = false)
         {
-            if (string.IsNullOrEmpty(txtId.Text) || !int.TryParse(txtId.Text, out _))
+            if (string.IsNullOrEmpty(txtId.Text) || !int.TryParse(txtId.Text, out int id))
             {
                 lblIdInput.ForeColor = Color.Red;
                 return "ID-ul trebuie să fie un număr valid!";
             }
-            if (!esteEditare && adminProd.GetProdus().Any(p => p.id == int.Parse(txtId.Text)))
+
+            var produse = adminProd.GetProdus();
+            int idVechi = esteEditare && dgvProduse.SelectedRows.Count > 0 ? int.Parse(dgvProduse.SelectedRows[0].Cells["Id"].Value.ToString()) : -1;
+            if (!esteEditare && produse.Any(p => p.id == id))
             {
                 lblIdInput.ForeColor = Color.Red;
                 return "ID-ul există deja!";
             }
+            else if (esteEditare && id != idVechi && produse.Any(p => p.id == id))
+            {
+                lblIdInput.ForeColor = Color.Red;
+                return "ID-ul modificat există deja!";
+            }
+
             if (string.IsNullOrEmpty(txtNume.Text) || txtNume.Text.Length > LIMITA_NUME)
             {
                 lblNumeInput.ForeColor = Color.Red;
@@ -203,7 +220,7 @@ namespace InterfataUtilizator_WindowsForms
             if (rdbFursecuri.Checked) return CategorieProdus.Fursecuri;
             if (rdbProduseDePost.Checked) return CategorieProdus.ProduseDePost;
             if (rdbDiverse.Checked) return CategorieProdus.Diverse;
-            return CategorieProdus.Diverse; 
+            return CategorieProdus.Diverse;
         }
 
         private void ResetareControale()
